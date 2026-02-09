@@ -20,7 +20,13 @@ def organize_dataset(zip_path, output_dir, train_ratio=0.8):
         (output_path / split / 'labels').mkdir(parents=True, exist_ok=True)
 
     # listar arquivos (assumindo que imagens e labels têm o mesmo nome)
-    img_dir = Path(temp_extract) / 'obj_train_data' # nome padrão do CVAT
+    search_path = list(Path(temp_extract).rglob('obj_train_data'))
+    
+    if not search_path:
+        raise FileNotFoundError("Pasta 'obj_train_data' não encontrada dentro do ZIP.")
+        
+    img_dir = search_path[0]
+    
     images = [f for f in os.listdir(img_dir) if f.endswith(('.jpg', '.png', '.jpeg'))]
     random.shuffle(images)
 
@@ -41,7 +47,12 @@ def organize_dataset(zip_path, output_dir, train_ratio=0.8):
     move_files(train_imgs, 'train')
     move_files(val_imgs, 'val')
 
-    names_file = Path(temp_extract) / 'obj.names'
+    # Procura o arquivo obj.names em qualquer subpasta
+    names_file = next(Path(temp_extract).rglob('obj.names'), None)
+    
+    if not names_file or not names_file.exists():
+        raise RuntimeError("Arquivo de classes (obj.names) não encontrado no ZIP.")
+
     yaml_path = output_path / 'data.yaml'
 
     if not names_file.exists():
